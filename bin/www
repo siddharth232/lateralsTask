@@ -1,0 +1,493 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('scrabble:server');
+var http = require('http');
+var port = normalizePort(process.env.PORT || '3000');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+var server=http.createServer(app);
+var io=require('socket.io').listen(server);
+var userlist={};
+var roomlist=[];
+var playerlist={};
+/**
+ * Get port from environment and store in Express.
+ */
+io.sockets.on('connection',function(socket){
+  
+  socket.on('new user',function(data){
+    socket.nickname=data;
+    userlist[socket.nickname]=socket;
+    
+  })
+  
+  socket.emit('roomlist',JSON.stringify(roomlist));
+  socket.on('new room',function(data){
+    roomlist.push({
+      name:data.name,
+      password:data.password,
+      users:[],
+      tiles:[{
+        name:'A',
+        value:1
+      },{
+        name:'A',
+        value:1
+      },{
+        name:'A',
+        value:1
+      },{
+        name:'A',
+        value:1
+      },{
+        name:'A',
+        value:1
+      },{
+        name:'A',
+        value:1
+      },{
+        name:'A',
+        value:1
+      },{
+        name:'A',
+        value:1
+      },{
+        name:'A',
+        value:1
+      },{
+        name:'B',
+        value:3
+      },{
+        name:'B',
+        value:3
+      },{
+        name:'C',
+        value:3
+      },{
+        name:'C',
+        value:3
+      },{
+        name:'D',
+        value:2
+      },{
+        name:'D',
+        value:2
+      },
+      {
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'E',
+        value:1
+      },{
+        name:'F',
+        value:4
+      },{
+        name:'F',
+        value:4
+      },
+      {
+        name:'G',
+        value:2
+      },{
+        name:'G',
+        value:2
+      },{
+        name:'G',
+        value:2
+      },{
+        name:'H',
+        value:4
+      },{
+        name:'H',
+        value:4
+      },
+      {
+        name:'I',
+        value:1
+      },{
+        name:'I',
+        value:1
+      },{
+        name:'I',
+        value:1
+      },{
+        name:'I',
+        value:1
+      },{
+        name:'I',
+        value:1
+      },{
+        name:'I',
+        value:1
+      },{
+        name:'I',
+        value:1
+      },{
+        name:'I',
+        value:1
+      },{
+        name:'I',
+        value:1
+      },{
+        name:'J',
+        value:8
+      },{
+        name:'K',
+        value:5
+      },
+      {
+        name:'L',
+        value:1
+      },
+      {
+        name:'L',
+        value:1
+      },
+      {
+        name:'L',
+        value:1
+      },
+      {
+        name:'L',
+        value:1
+      },
+      {
+        name:'M',
+        value:3
+      },
+      {
+        name:'M',
+        value:3
+      },
+      {
+        name:'N',
+        value:1
+      },
+      {
+        name:'N',
+        value:1
+      },{
+        name:'N',
+        value:1
+      },{
+        name:'N',
+        value:1
+      },{
+        name:'N',
+        value:1
+      },{
+        name:'N',
+        value:1
+      },{
+        name:'O',
+        value:1
+      },{
+        name:'O',
+        value:1
+      },{
+        name:'O',
+        value:1
+      },{
+        name:'O',
+        value:1
+      },{
+        name:'O',
+        value:1
+      },{
+        name:'O',
+        value:1
+      },{
+        name:'O',
+        value:1
+      },{
+        name:'O',
+        value:1
+      },
+      {
+        name:'P',
+        value:3
+      },{
+        name:'P',
+        value:3
+      },
+      {
+        name:'Q',
+        value:10
+      },{
+        name:'R',
+        value:1
+      },{
+        name:'R',
+        value:1
+      },{
+        name:'R',
+        value:1
+      },{
+        name:'R',
+        value:1
+      },{
+        name:'R',
+        value:1
+      },{
+        name:'R',
+        value:1
+      },
+      {
+        name:'S',
+        value:1
+      },{
+        name:'S',
+        value:1
+      },{
+        name:'S',
+        value:1
+      },{
+        name:'S',
+        value:1
+      },{
+        name:'T',
+        value:1
+      },{
+        name:'T',
+        value:1
+      },{
+        name:'T',
+        value:1
+      },{
+        name:'T',
+        value:1
+      },{
+        name:'T',
+        value:1
+      },{
+        name:'T',
+        value:1
+      },{
+        name:'U',
+        value:1
+      },{
+        name:'U',
+        value:1
+      },{
+        name:'U',
+        value:1
+      },{
+        name:'U',
+        value:1
+      },{
+        name:'V',
+        value:4
+      },{
+        name:'V',
+        value:4
+      },{
+        name:'W',
+        value:4
+      },{
+        name:'W',
+        value:4
+      },{
+        name:'X',
+        value:8
+      },
+      {
+        name:'Y',
+        value:4
+      },{
+        name:'Y',
+        value:4
+      },
+      {
+        name:'Z',
+        value:10
+      }
+    ]
+    })
+   
+    socket.emit('roomlist',JSON.stringify(roomlist));
+  })
+  socket.on('EnterRoom',function(data){
+   for(var i=0;i<roomlist.length;i++){
+      if(roomlist[i].name==data.room&&roomlist[i].password==data.password){
+        if(roomlist[i].users.length<2){
+        if(roomlist[i].users.indexOf(data.user)==-1){
+          if(roomlist[i].users.length!=0){
+          roomlist[i].users.push(data.user);
+          console.log(data.user+'from enter room');
+          roomlist[i].tiles.sort(()=>Math.random()-0.5);
+          let rnum=Math.floor(Math.random()*(roomlist[i].tiles.length-7));
+          playerlist[data.user]={
+            Room:roomlist[i].name,
+            score:0,
+            Current_7:roomlist[i].tiles.slice(rnum,(rnum+7))
+          }
+          console.log(playerlist[data.user].Current_7);
+          roomlist[i].tiles.splice(rnum,rnum+7);
+          userlist[data.user].emit('Entered',{room:JSON.stringify(roomlist[i]),player:JSON.stringify(playerlist[data.user])});
+          break;}
+          else{
+            console.log('else block');
+            roomlist[i].users.push(data.user);
+            roomlist[i].tiles.sort(()=>Math.random()-0.5);
+          let rnum=Math.floor(Math.random()*roomlist[i].tiles.length);
+          playerlist[data.user]={
+            Room:roomlist[i].name,
+            score:0,
+            Current_7:roomlist[i].tiles.slice(rnum,(rnum+7))
+          }
+          roomlist[i].tiles.splice(rnum,rnum+7);
+          userlist[data.user].emit('Entered',{room:JSON.stringify(roomlist[i]),player:JSON.stringify(playerlist[data.user])});
+          userlist[roomlist[i].users[0]].emit('Opponent Entered',{room:JSON.stringify(roomlist[i]),player:JSON.stringify(playerlist[roomlist[i].users[0]])})
+          break;
+            
+          }
+        }
+      }else{
+        socket.emit('warning','Already Filled');
+      }
+        
+        
+      }
+    }
+   
+  })
+  socket.on('score update',function(data){
+     let Opponent;
+     playerlist[data.user].score+=data.score;
+     for(let i=0;i<roomlist.length;i++){
+       if(roomlist[i].name==playerlist[data.user].Room){
+         if(roomlist[i].tiles.length>=data.tilesused){
+         let rnum=Math.floor(Math.random()*(roomlist[i].tiles.length-data.tilesused));
+         playerlist[data.user].Current_7=playerlist[data.user].Current_7.concat(roomlist[i].tiles.slice(rnum,(rnum+data.tilesused)));
+         for(let j=0;j<roomlist[i].users.length;j++){
+           if(roomlist[i].users[j]!=data.user){
+             Opponent=roomlist[i].users[j];
+           }
+         }
+         userlist[Opponent].emit('opponent update',{Oppscore:playerlist[data.user].score,position:data.tileplacement});
+         userlist[data.user].emit('update',{score:playerlist[data.user].score,Current_7:playerlist[data.user].Current_7});
+        }else{
+          let scores=[];
+          let Opponent;
+          for(let j=0;j<roomlist[i].users.length;j++){
+            scores.push(playerlist[roomlist[i].users[j]].score);
+          }
+          for(let j=0;j<roomlist[i].users.length;j++){
+            userlist[roomlist[i].users[j]].emit('Game Over',{usernames:JSON.stringify(roomlist[i].users),scores:JSON.stringify(scores)});
+          }
+          
+        }
+        }
+     }
+  })
+    
+})
+
+
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
