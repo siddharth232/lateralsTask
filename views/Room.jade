@@ -1,0 +1,25 @@
+extends layout
+block content
+  div#Board
+    -var n=1
+     while n<16
+      div.square(id="1|"+n)
+      div.square(id='2|'+n)
+      div.square(id="3|"+n)
+      div.square(id="4|"+n)
+      div.square(id="5|"+n)
+      div.square(id="6|"+n)
+      div.square(id="7|"+n)
+      div.square(id="8|"+n) 
+      div.square(id="9|"+n)
+      div.square(id="10|"+n)
+      div.square(id="11|"+n)
+      div.square(id="12|"+n)
+      div.square(id="13|"+n)
+      div.square(id="14|"+n)
+      div.square(id="15|"+n++)
+      br
+  <script src=https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js></script>
+  script.
+    var socket=io.connect('http://localhost:3000');
+    socket.emit('new user',#{username});
