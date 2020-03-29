@@ -2,8 +2,8 @@ var express = require('express');
 var router = express.Router();
 var Dictionary=require('oxford-dictionary');
 var config={
-  app_id:'ac023d09',
-  app_key:'	bef2faa83711a14df79fdf1bff2e7007',
+  app_id:'e9e81222',
+  app_key:'ce799100c5286ea7d6a73ee04418c248',
   source_lang:"en-us"
 };
 var dict=new Dictionary(config);
@@ -21,11 +21,18 @@ router.post('/username',function(req,res,next){
   res.render('CreateRoom',{username:req.body.username});
 })
 router.post('/check/:word',function(req,res,next){
+  console.log(req.params.word);
   var lookup=dict.definitions(req.params.word);
   lookup.then(function(resp){
-    res.send(1);
+    console.log(JSON.stringify(resp,null,4));
+    res.send('1');
+    console.log('crct');
+    console.log(req.params.word);
   },function(err){
-    res.send(0);
+    console.log(err+':err');
+    res.send('0');
+    console.log('wrong');
+    console.log(req.params.word);
   })
 });
 
