@@ -5,12 +5,16 @@ block content
         input(type='text',name='room',placeholder='Roomname',id='rname')
         input(type="text",name='password',placeholder='Room Password',id='rpass')
         input(type="submit",value='create',onclick='addroom()')
+        div#warnmessage
       div#list
       div#enter
         input(type='text',name='uroom',placeholder='Roomname',id='uname')
         input(type="text",name='upassword',placeholder='Room Password',id='upass')
         input(type="submit",value='Enter',onclick='EnterRoom()')
-    div#warning
+    div#warning.OnGame
+    div#scoreboard.OnGame
+    div#cart.OnGame
+      div#cartheader Created  &nbsp; &nbsp;&nbsp;Words
     div#Board
        -var n=1
        while n<16
@@ -22,7 +26,6 @@ block content
         div.square(id="6|"+n,ondrop='drop(event)',ondragover='allowdrop(event)',onclick='add(this)')
         div.square(id="7|"+n,ondrop='drop(event)',ondragover='allowdrop(event)',onclick='add(this)')
         div.square(id="8|"+n,ondrop='drop(event)',ondragover='allowdrop(event)',onclick='add(this)') 
-        div.square(id="8|"+n,ondrop='drop(event)',ondragover='allowdrop(event)',onclick='add(this)') 
         div.square(id="9|"+n,ondrop='drop(event)',ondragover='allowdrop(event)',onclick='add(this)')
         div.square(id="10|"+n,ondrop='drop(event)',ondragover='allowdrop(event)',onclick='add(this)')
         div.square(id="11|"+n,ondrop='drop(event)',ondragover='allowdrop(event)',onclick='add(this)')
@@ -31,189 +34,377 @@ block content
         div.square(id="14|"+n,ondrop='drop(event)',ondragover='allowdrop(event)',onclick='add(this)')
         div.square(id="15|"+n++,ondrop='drop(event)',ondragover='allowdrop(event)',onclick='add(this)')
         br
-    div#currenttiles
-    button(onclick='evaluate()') Evaluate
-    button(onclick='clear()') Clear
-      script.
+    div#currenttiles.OnGame
+    button#Evaluate(onclick='checkfn()').OnGame Evaluate
+    button#ClearSelection(onclick='clear()').OnGame Clear Selection
+    button#AddCart(onclick='AddCart()').OnGame Add To Cart
+    button#clearcart(onclick='ClearCart()').OnGame Clear Cart
+    script.
         var check;
+        var warningmessage="";
+        var clrTimeout1;
+        var clrTimeout2;
+        var clrTimeout3;
+        var clrTimeout4;
         var tilesplaced=[];
+        var cont='';
         var tileselected=[];
+        var Tiles=document.getElementsByClassName('playertiles');
+        var userscore=0;
+        var opponentscore=0;
         var username='!{username}';
         var uroom=document.getElementById('uname');
         var upass=document.getElementById('upass');
         var socket=io.connect('http://localhost:3000');
         var content=document.getElementById('list').innerHTML;
-        var playertiles=document.getElementById('currenttiles').innerHTML;
-        content='asd';
+        var playertiles=document.getElementById('currenttiles');
+        var cart=[];
+        var postioncart=[];
         socket.emit('new user',username);
         var room=document.getElementById('rname');
         var password=document.getElementById('rpass');
         function addroom(){
-        //  console.log('addroom');
-          socket.emit('new room',{name:room.value,password:password.value,users:username});
+          if(password.value!=""){
+            socket.emit('new room',{name:room.value,password:password.value,users:username});
+          }
+          else{
+            document.getElementById('warnmessage').innerHTML='Password Should contain some characters';
+          }
         }
+        socket.on('Invalid',function(data){
+          document.getElementById('warnmessage').innerHTML=data;
+        })
+        socket.on('warning',function(data){
+          document.getElementById('warnmessage').innerHTML=data;
+        })
         socket.on('roomlist',function(data){
           if(data){
-          var rooms=JSON.parse(data);
-          //console.log(data);
-          content='<ul>';
-          for(var i=0;i<rooms.length;i++){
-            content+='<li>'+rooms[i].name+"</li>";
+            var rooms=JSON.parse(data);
+            content='<ul>';
+            for(var i=0;i<rooms.length;i++){
+              content+='<li>'+rooms[i].name+"</li>";
+            }
+            content+="</ul>";
           }
-          content+="</ul>";
-          }else{
-          content='No room created yet';
+          else
+          {
+            content='No room created yet';
           }
-         //rs console.log(content);
           document.getElementById('list').innerHTML=content;
         })
         function EnterRoom(){
-          console.log('enterroom');
-           socket.emit('EnterRoom',{user:username,room:uroom.value,password:upass.value});
+          //console.log('enterroom');
+          socket.emit('EnterRoom',{user:username,room:uroom.value,password:upass.value});
         }
         socket.on('Entered',function(data){
-          console.log('Entered Socket');
+          let scoredetails=JSON.parse(data.room).users;
+          document.getElementById('scoreboard').innerHTML='<div id="scoreheader">Scores</div>';
+          for(let i=0;i<scoredetails.length;i++){
+            if(scoredetails[i]==username){
+               document.getElementById('scoreboard').innerHTML+="<div>"+scoredetails[i]+":<span id='self'>0</span></div>";
+            }
+            else{
+              document.getElementById('scoreboard').innerHTML+='<div>'+scoredetails[i]+":<span id='opp'>0</span></div>";
+            }
+          }
           document.getElementById('Menu').style.display='none';
           document.getElementById('Board').style.display='inline-block';
+          let ToDisplay=document.getElementsByClassName('OnGame');
+          for(let i=0;i<ToDisplay.length;i++){
+            ToDisplay[i].style.display='inline-block';
+          }
           if(JSON.parse(data.room).users.length!=2){
             document.getElementById('warning').innerHTML='<p>Waiting For Ur Friend</p>';
-          }else{
-            console.log('else block');
-            var tiles=JSON.parse(data.player).Current_7;
-            playertiles="";
-            for(var i=0;i<tiles.length;i++){
-             playertiles+='<div draggable="true" class="playertiles" ondragstart="drag(event)" id="'+tiles[i].name+'||'+tiles[i].value+'>'+tiles[i].name+":"+tiles[i].value+"</div>";
-            }
-            console.log(playertiles);
-            document.getElementById('currenttiles').innerHTML=playertiles;
+            return 0;
+          } 
+          document.getElementById('warning').innerHTML='Opponent\'s Turn';
+          nodrag();
+          if(clrTimeout1){
+            clearInterval(clrTimeout1);
           }
+          if(clrTimeout2){
+            clearInterval(clrTimeout2);
+          }
+          if(clrTimeout3){
+            clearInterval(clrTimeout3);
+          }
+          if(clrTimeout4){
+            clearInterval(clrTimeout4);
+          }
+          clrTimeout1=setTimeout(function(){ drag();},300000);
+          var tiles=JSON.parse(data.player).Current_7;
+          playertiles.innerHTML="";
+          for(var i=0;i<tiles.length;i++){
+            cont+='<div draggable="true" class="playertiles" ondragstart="drags(event)" id="'+tiles[i].name+'||'+tiles[i].value+'||'+tiles[i].ID+'" >'+tiles[i].name+"<sub>"+tiles[i].value+"</sub> </div>";
+          }
+          document.getElementById('currenttiles').innerHTML=cont;
         })
         socket.on('Opponent Entered',function(data){
           var tiles=JSON.parse(data.player).Current_7;
-          playertiles="";
-            for(var i=0;i<tiles.length;i++){
-             playertiles+='<div draggable="true" class="playertiles" ondragstart="drag(event)" id="'+tiles[i].name+'||'+tiles[i].value+'">'+tiles[i].name+":"+tiles[i].value+"</div>";
-            }
-      
-            document.getElementById('currenttiles').innerHTML=playertiles;
-        })
-           function allowdrop(ev) {
-           ev.preventDefault(); 
-                }
-
-          function drag(ev) {
-               ev.dataTransfer.setData("text", ev.target.id);
-              }
-        function add(e){
-          var arr=e.id.split('|');
-          if(e.children.length!=0){
-            var arrc=e.children[0].id.split(':');
-            if(tileselected.length==0){
-              e.style.backgroundcolor='#F0E7E5';
-              tileselected.push({
-                row:arr[1],
-                column:arr[2],
-                name:arrc[0],
-                value:arrc[1]
-              })
+          playertiles.innerHTML="";
+          for(var i=0;i<tiles.length;i++){
+            playertiles.innerHTML+='<div draggable="true" class="playertiles" ondragstart="drags(event)" id="'+tiles[i].name+'||'+tiles[i].value+'||'+tiles[i].ID+'">'+tiles[i].name+"<sub>"+tiles[i].value+"</sub></div>";
+          }
+          document.getElementById('warning').innerHTML='';
+          document.getElementById('warning').innerHTML='Your Turn';
+          let scoredetails=JSON.parse(data.room).users;
+          document.getElementById('scoreboard').innerHTML='<div id="scoreheader">Scores</div>'
+          for(let i=0;i<scoredetails.length;i++){
+            if(scoredetails[i]==username){
+              document.getElementById('scoreboard').innerHTML+="<div>"+scoredetails[i]+":<span id='self'>0</span></div>";
             }
             else{
-            if(((tileselected[tileselected.length-1].row==arr[1])&&(tileselected[tileselected.length-2].row==arr[1]))||((tileselected[tileselected.length-1].column==arr[0])&&(tileselected[tileselected.length-2].row==arr[0]))){
-              e.style.backgroundcolor='#F0E7E5';
+              document.getElementById('scoreboard').innerHTML+='<div>'+scoredetails[i]+":<span id='opp'>0</span></div>";
+            }
+          }
+        })
+        function ClearCart(){
+          cart=[];
+          var Parent=document.getElementById('cart');
+          for(let i=1;i<Parent.childNodes.length;i++){
+             Parent.removeChild(Parent.childNodes[i]);
+          }
+        }
+        function allowdrop(ev){
+          ev.preventDefault(); 
+        }
+        function drags(ev){
+          ev.dataTransfer.setData("text", ev.target.id);
+        }
+        function add(e){
+          let presence;
+          var arr=e.id.split('|');
+          if(e.children.length!=0){
+            var arrc=e.children[0].id.split('||');
+            if(tileselected.length==0){
+              e.style.opacity='0.7';
               tileselected.push({
                 row:arr[1],
-                column:arr[2],
+                column:arr[0],
                 name:arrc[0],
-                value:arrc[1]
+                value:arrc[1],
+                ID:arrc[2]
               })
             }
-            
-            }
-          }
-        }
-        function drop(ev) {
-          ev.preventDefault();
-             var data = ev.dataTransfer.getData("text");
-            ev.target.appendChild(document.getElementById(data));
-            tilesplaced.push({
-              squareid:ev.target.id,
-              tilesid:data
-            });
+            else
+            {
+              for(let m=0;m<tileselected.length;m++){
+                if(tileselected[m].ID==arrc[2]){
+                  presence=true;
+                }
               }
-        function evaluate(){
-           let word='';
-           for(let i=0;i<tileselected.length;i++){
-             word+=tileselected[i].name;
-           }
-           var xhttp=new XMLHttpRequest();
-           xhttp.onreadystatechange=function(){
-             if(this.readyState==4 && this.status ==200){
-               //console.log(this.responseText);
-               check=this.responseText;
-             } 
-           };
-           xhttp.open('POST','/check/'+word,true);
-           xhttp.send();
-           if(check==1){
-            let sum=0;
-            for(let i=0;i<tileselected.length;i++){
-              sum+=tileselected[i].value;
+              if((tileselected.length>1)&&(!presence)){
+                if(((tileselected[tileselected.length-1].row==arr[1])&&(tileselected[tileselected.length-2].row==arr[1])&&((((Number(tileselected[tileselected.length-1].column)+1)==arr[0])&&((Number(tileselected[tileselected.length-2].column)+2)==arr[0]))||(((Number(tileselected[tileselected.length-1].column)-1)==arr[0])&&((Number(tileselected[tileselected.length-2].column)-2)==arr[0]))))||((tileselected[tileselected.length-1].column==arr[0])&&(tileselected[tileselected.length-2].column==arr[0])&&((((Number(tileselected[tileselected.length-1].row)+1)==arr[1])&&((Number(tileselected[tileselected.length-2].row)+2)==arr[1]))||(((Number(tileselected[tileselected.length-1].row)-1)==arr[1])&&((Number(tileselected[tileselected.length-2].row)-2)==arr[1]))))){
+                  e.style.opacity='0.7';
+                  tileselected.push({
+                    row:arr[1],
+                    column:arr[0],
+                    name:arrc[0],
+                    value:arrc[1],
+                    ID:arrc[2]
+                  })
+                } 
+              }
+              else if(!presence)
+              {
+                if(((tileselected[tileselected.length-1].row==arr[1])&&((((Number(tileselected[tileselected.length-1].column)+1)==arr[0])||((Number(tileselected[tileselected.length-1].column)-1)==arr[0])))||(tileselected[tileselected.length-1].column==arr[0])&&((((Number(tileselected[tileselected.length-1].row)+1)==arr[1]))||((Number(tileselected[tileselected.length-1].row)-1)==arr[1])))){
+                  e.style.opacity='0.7';
+                  tileselected.push({
+                    row:arr[1],
+                    column:arr[0],
+                    name:arrc[0],
+                    value:arrc[1],
+                    ID:arrc[2]
+                  })
+                }
+              }
             }
-            socket.emit('score update',{score:sum,user:username,tilesused:tilesplaced.length,tileplacement:JSON.stringify(tilesplaced)});
-            tilesplaced=[];
-            nodrag();
-            setTimeout(function(){ drag();},300000);
-           }else{
-             var ele;
-             for(let i=0;i<tilesplaced.length;i++){
-               ele=document.getElementById(tilesplaced[i].tilesid);
-               document.getElementById('currenttiles').appendChild(ele);
-               document.getElementById(tilesplaced[i].squareid).removeChild(document.getElementById(tilesplaced[i].squareid).childNodes[0]);
-               document.getElementById('warning').innerHTML='Wrong Word.You Lost Your Turn';
-               nodrag();
-               setTimeout(function(){ drag();},300000);
-               //socket implementation for change the turn
-               
-             }
-           }
-        }
-        function nodrag(){
-          var ele=document.getElementsByClassName('playertiles');
-          for(let i=0;i<ele.length;i++){
-            ele[i].draggable=false;
           }
         }
-        function drag(){
-          var ele=document.getElementsByClassName('playertiles');
-          for(let i=0;i<ele.length;i++){
-            ele[i].draggable=true;
+        function AddCart(){
+          let word='';
+          for(let i=0;i<tileselected.length;i++){
+            word+=tileselected[i].name;
           }
-        }
-        function clear(){
-          for(var i=0;i<tileselected.length;i++){
-            document.getElementById(tileselected[i].name+":"+tileselected[i].value).style.backgroundcolor='white';
-          }
+          let Div=document.createElement('div');
+          Div.setAttribute('class','cartword');
+          Div.innerHTML=word;
+          document.getElementById('cart').appendChild(Div);
+          cart.push(tileselected);
           tileselected=[];
-        }
-        socket.on('opponent update',function(data){
-          let arr=JSON.parse(data.position);
-          for(let i=0;i<arr.length;i++){
-            let Div=document.createElement('DIV');
-            Div.class='playertiles';
-            Div.id=arr[i].tilesid;
-            let values=arr[i].tilesid.split('||');
-            Div.innerHTML=arr[0]+":"+arr[1];
-            document.getElementById(arr[i].squareid).appendChild(Div);
-          }
+          nodrag();
           drag();
-        })
-        socket.on('Game Over',function(data){
-          if(JSON.parse(data.scores)[0]>JSON.parse(data.scores)[1]){
-            alert('Game Over '+JSON.parse(data.usernames)[0]+'('+JSON.parse(data.scores)[0]+') defeated '+JSON.parse(data.usernames)[1]+'('+JSON.parse(data.scores)[1]+')')
-          }else if (JSON.parse(data.scores)[1]>JSON.parse(data.scores)[0]){
-           alert('Game Over '+JSON.parse(data.usernames)[1]+'('+JSON.parse(data.scores)[1]+') defeated '+JSON.parse(data.usernames)[0]+'('+JSON.parse(data.scores)[0]+')')
-          }else{
-            alert('Game Over Match Draw with score'+JSON.parse(data.scores)[0]);
+        }
+        function drop(ev){
+          ev.preventDefault();
+          var data = ev.dataTransfer.getData("text");
+          ev.target.appendChild(document.getElementById(data));
+          tilesplaced.push({
+            squareid:ev.target.id,
+            tilesid:data
+          });
+        }
+        function checkfn(){
+          let Warnmsg;
+          for(let k=0;k<cart.length;k++){
+            var word='';
+            for(let i=0;i<cart[k].length;i++){
+              word+=cart[k][i].name;
+            }
+            if(k!=(cart.length-1)){
+            socket.emit('new word',{room:uroom.value,words:word,user:username,cartindex:k,callfn:false});
+            }
+            else{
+            socket.emit('new word',{room:uroom.value,words:word,user:username,cartindex:k,callfn:true});
+            }
           }
-          
+        }
+        function scoreupdate(){
+          console.log('score emitting');
+          socket.emit('score update',{score:userscore,user:username,tilesused:tilesplaced.length,tileplacement:JSON.stringify(tilesplaced)});
+          tilesplaced=[];
+          warningmessage+='Opponent\'s Turn!!';
+          document.getElementById('warning').innerHTML=warningmessage;
+          warningmessage='';
+          nodrag();
+          if(clrTimeout1){
+            clearInterval(clrTimeout1);
+          }
+          if(clrTimeout2){
+            clearInterval(clrTimeout2);
+          }
+          if(clrTimeout3){
+            clearInterval(clrTimeout3);
+          }
+          if(clrTimeout4){
+              clearInterval(clrTimeout4);
+            }
+          clrTimeout2=setTimeout(function(){ drag();},300000);
+          var Parent=document.getElementById('cart');
+          for(let i=0;i<Parent.childNodes.length;i++){
+            console.log(Parent.childNodes[i])
+            Parent.removeChild(Parent.childNodes[i]);
+          }
+        }
+        socket.on('new word',function(data){
+          var xhttp=new XMLHttpRequest();
+          xhttp.onreadystatechange=function(){
+            if(this.readyState==4 && this.status ==200){
+              console.log(this.responseText+'    response');
+              check=this.responseText;
+              if(check=='1'){
+                let sum=0;
+                for(let i=0;i<cart[data.index].length;i++){
+                  sum+=Number(cart[data.index][i].value);
+                }
+                userscore+=sum;
+                warningmessage+='<br>Crct! U got'+sum;
+                document.getElementById('self').innerHTML=userscore;
+                if(data.CBfn){
+                  scoreupdate();
+                  console.log('calling function');
+                }
+              }
+              else{
+                console.log(data.CBfn+'else'+check);
+                if(data.CBfn){
+                  warningmessage+='<br>Wrong Word';
+                  scoreupdate();
+                  console.log('calling function from else');
+                }
+              }
+            }
+          }
+          console.log(data.word);
+          xhttp.open('POST','/check/'+data.word,true);
+          xhttp.send();
         })
+          socket.on('repeated word',function(data){
+            warningmessage+='<br>Repetition Of Words';
+            if(data.CBfn){
+              scoreupdate();
+            }
+          })
+          socket.on('Our Turn',function(data){
+            drag();
+            if(clrTimeout1){
+              clearInterval(clrTimeout1);
+            }
+            if(clrTimeout2){
+              clearInterval(clrTimeout2);
+            }
+            if(clrTimeout3){
+              clearInterval(clrTimeout3);
+            }
+            if(clrTimeout4){
+              clearInterval(clrTimeout4);
+            }
+            clrTimeout3=setTimeout(function(){nodrag(),300000});
+          })
+          function nodrag(){
+           var squares=document.getElementsByClassName('square');
+           console.log(squares);
+           for(let i=0;i<squares.length;i++){
+             squares[i].ondragover='';
+           }
+          }
+          function drag(){
+            var squares=document.getElementsByClassName('square');
+           console.log(squares);
+           for(let i=0;i<squares.length;i++){
+             squares[i].ondragover='allowdrop(event)';
+           }
+          }
+          function clear(){
+            for(var i=0;i<tileselected.length;i++){
+              document.getElementById(tileselected[i].name+"||"+tileselected[i].value+"||"+tileselected[i].ID).style.opacity='1';
+            }
+            tileselected=[];
+          }
+          socket.on('opponent update',function(data){
+            document.getElementById('warning').innerHTML='Your Turn';
+            let arr=JSON.parse(data.position);
+            document.getElementById('opp').innerHTML=data.Oppscore;
+            for(let i=0;i<arr.length;i++){
+              let Div=document.createElement('DIV');
+              Div.setAttribute('class','playertiles');
+              Div.id=arr[i].tilesid;
+              let values=arr[i].tilesid.split('||');
+              Div.innerHTML=values[0]+"<sub>"+values[1]+'</sub>';
+              document.getElementById(arr[i].squareid).appendChild(Div);
+            }
+            drag();
+            if(clrTimeout1){
+              clearInterval(clrTimeout1);
+            }
+            if(clrTimeout2){
+              clearInterval(clrTimeout2);
+            }
+            if(clrTimeout3){
+              clearInterval(clrTimeout3);
+            }
+            if(clrTimeout4){
+              clearInterval(clrTimeout4);
+            }
+            clrTimeout4=setTimeout(function(){nodrag(),300000})
+          })
+          socket.on('update',function(data){
+            var tiles=data.Current_7;
+            playertiles.innerHTML="";
+            cont='';
+            for(var i=0;i<tiles.length;i++){
+              cont+='<div draggable="true" class="playertiles" ondragstart="drags(event)" id="'+tiles[i].name+'||'+tiles[i].value+'||'+tiles[i].ID+'" >'+tiles[i].name+"<sub>"+tiles[i].value+"</sub></div>";
+            }
+            document.getElementById('currenttiles').innerHTML=cont;
+          })
+          socket.on('Game Over',function(data){
+            if(JSON.parse(data.scores)[0]>JSON.parse(data.scores)[1]){
+              alert('Game Over '+JSON.parse(data.usernames)[0]+'('+JSON.parse(data.scores)[0]+') defeated '+JSON.parse(data.usernames)[1]+'('+JSON.parse(data.scores)[1]+')')
+            }
+            else if(JSON.parse(data.scores)[1]>JSON.parse(data.scores)[0]){
+              alert('Game Over '+JSON.parse(data.usernames)[1]+'('+JSON.parse(data.scores)[1]+') defeated '+JSON.parse(data.usernames)[0]+'('+JSON.parse(data.scores)[0]+')')
+            }
+            else{
+              alert('Game Over Match Draw with score'+JSON.parse(data.scores)[0]);
+            }
+          })
