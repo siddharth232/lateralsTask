@@ -7,7 +7,7 @@
 var app = require('../app');
 var debug = require('debug')('scrabble:server');
 var http = require('http');
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '2000');
 app.set('port', port);
 
 /**
@@ -349,9 +349,11 @@ io.sockets.on('connection',function(socket){
    for(var i=0;i<roomlist.length;i++){
       if(roomlist[i].name==data.room&&roomlist[i].password==data.password){
         if(roomlist[i].users.length<2){
-        if(roomlist[i].users.indexOf(data.user)==-1){
-          if(roomlist[i].users.length!=0){
+          console.log(typeof(roomlist[i].users.indexOf(data.user)));
+        if((roomlist[i].users.indexOf(data.user))==-1){
+          if(roomlist[i].users.length==0){
           roomlist[i].users.push(data.user);
+          console.log('as');
           console.log(data.user+'from enter room');
           roomlist[i].tiles.sort(()=>Math.random()-0.5);
           let rnum=Math.floor(Math.random()*(roomlist[i].tiles.length-7));
@@ -363,9 +365,10 @@ io.sockets.on('connection',function(socket){
           console.log(playerlist[data.user].Current_7);
           roomlist[i].tiles.splice(rnum,rnum+7);
           userlist[data.user].emit('Entered',{room:JSON.stringify(roomlist[i]),player:JSON.stringify(playerlist[data.user])});
-          break;}
+          break;
+        } 
           else{
-            console.log('else block');
+            console.log('asd');
             roomlist[i].users.push(data.user);
             roomlist[i].tiles.sort(()=>Math.random()-0.5);
           let rnum=Math.floor(Math.random()*roomlist[i].tiles.length);
@@ -375,19 +378,21 @@ io.sockets.on('connection',function(socket){
             Current_7:roomlist[i].tiles.slice(rnum,(rnum+7))
           }
           roomlist[i].tiles.splice(rnum,rnum+7);
+          console.log(playerlist[data.user].Current_7);
           userlist[data.user].emit('Entered',{room:JSON.stringify(roomlist[i]),player:JSON.stringify(playerlist[data.user])});
           userlist[roomlist[i].users[0]].emit('Opponent Entered',{room:JSON.stringify(roomlist[i]),player:JSON.stringify(playerlist[roomlist[i].users[0]])})
           break;
             
           }
         }
-      }else{
+      } 
+    else{
         socket.emit('warning','Already Filled');
       }
-        
+    }
         
       }
-    }
+    
    
   })
   socket.on('score update',function(data){
